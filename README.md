@@ -2,7 +2,7 @@
 
 用 Mac 操控 iPhone 和安卓设备：读取控件、截图、点击、输入，并按 App 保存操作路径和踩坑经验。
 
-这是一套工具和实操手册。朋友需要连接自己的设备并完成首次配置；页面随系统、App 版本和屏幕布局变化，每步执行后都要验证。
+Skill、工具、安装教程和实操记录都在这个仓库，下载这一份即可。朋友需要连接自己的设备并完成首次配置；页面随系统、App 版本和屏幕布局变化，每步执行后都要验证。
 
 ## 开始使用
 
@@ -13,7 +13,18 @@ cd phone-agent
 
 - **iPhone**：按 [首次配置](core/iphone-setup.md) 安装依赖、用自己的 Apple ID 签名 WebDriverAgent，再启动连接。
 - **安卓**：准备 Python 3、adb 和 USB 调试；中文输入另装 ADB Keyboard。按 [设备通路](core/通路.md) 选择设备、确认坐标和输入法。
-- **Skill**：配套 [claude-skills 的 phone-agent 插件](https://github.com/Elucidator-hky/claude-skills/tree/main/plugins/phone-agent) 提供 `iphone-control` 和 `phone-cleanup`，安装方法见该仓库 README。`PHONE_AGENT_HOME` 指向本仓库的绝对路径。
+- **Skill**：本仓库的 [iphone-control](skills/iphone-control/SKILL.md) 和 [phone-cleanup](skills/phone-cleanup/SKILL.md) 分别负责 iPhone 操控、iPhone / 安卓清理。
+
+完成设备配置后，在仓库根目录启动 Claude Code 并加载这里的 Skill：
+
+```bash
+export PHONE_AGENT_HOME="$PWD"
+claude --plugin-dir "$PHONE_AGENT_HOME"
+```
+
+启动后可直接说「看一下手机存储空间」或要求操作指定 App。每次启动都带 `--plugin-dir`；也可以将两个 Skill 目录复制到自己的 Skill 安装目录，并保留 `PHONE_AGENT_HOME` 指向本仓库。首次连接按上面的 iPhone 或安卓说明完成。
+
+目录说明：`skills/` 是两个 Skill，`core/tools/` 是可执行工具，`core/apps/` 是各 App 的使用记录，`core/iphone-setup.md` 是 iPhone 首次配置教程。
 
 ## 工具怎么用
 

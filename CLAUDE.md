@@ -66,7 +66,7 @@ tasks/<任务名>/          任务的素材、产出、进度         ← 做完
 
 - iPhone：WDA 首次搭建及环境变量见 `core/iphone-setup.md`，操作命令见 `core/通路.md`。
 - 安卓：用 `ANDROID_SERIAL` 选择设备，按 `core/通路.md` 配置 adb 与输入法。
-- 配套 Skill 来自 `Elucidator-hky/claude-skills` 的 `phone-agent` 插件，`PHONE_AGENT_HOME` 指向本仓库。
+- Skill、工具、手册统一在本仓库维护；`skills/iphone-control` 和 `skills/phone-cleanup` 由根目录 `.claude-plugin/plugin.json` 加载，`PHONE_AGENT_HOME` 指向本仓库。
 
 ## 边界（不可越过）
 
