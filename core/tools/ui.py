@@ -29,6 +29,9 @@ def center(bounds):
 
 
 def main():
+    if "--help" in sys.argv[1:] or "-h" in sys.argv[1:]:
+        print(__doc__)
+        return
     kw = None
     show_all = False
     for a in sys.argv[1:]:

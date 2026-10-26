@@ -7,7 +7,8 @@
   python3 see.py --ask "现在这个页面在干什么？有哪些按钮？"   # 纯问答
 
 能读控件树的页面（小红书等全屏 App）用 tap.py，比这个快且精确。
-key 从 ~/.config/secrets/dashscope.env 读，走 --noproxy（国内服务不过代理）。
+key 从 DASHSCOPE_API_KEY 环境变量或 DASHSCOPE_ENV_FILE 指定文件读取。
+截图临时目录可通过 PHONE_AGENT_SHOT_DIR 配置；请求直接连接百炼。
 """
 import base64
 import json
@@ -15,36 +16,51 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+from pathlib import Path
 import urllib.request
 
 SHOT_W = 1400          # 发给模型的图宽度
 API = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-MODEL = "qwen-vl-max"  # 注意：qwen-vl-max-latest 这个 key 没权限
+MODEL = "qwen-vl-max"
 
 
 def load_key():
-    env = os.path.expanduser("~/.config/secrets/dashscope.env")
-    for line in open(env, encoding="utf-8"):
-        if line.startswith("DASHSCOPE_API_KEY"):
-            return line.split("=", 1)[1].strip()
-    raise SystemExit("dashscope.env 里没找到 DASHSCOPE_API_KEY")
+    key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    if key:
+        return key
+    env = os.environ.get("DASHSCOPE_ENV_FILE")
+    if env:
+        for line in Path(env).expanduser().read_text(encoding="utf-8").splitlines():
+            match = re.match(r'^\s*(?:export\s+)?DASHSCOPE_API_KEY\s*=\s*(.*?)\s*$', line)
+            if match:
+                key = match.group(1).strip('\"\'')
+                if key:
+                    return key
+    raise SystemExit("请设置 DASHSCOPE_API_KEY，或通过 DASHSCOPE_ENV_FILE 指定包含该变量的文件")
 
 
 def screenshot():
     """截图并缩放，返回 (base64, 缩放系数)。系数 = 真实坐标 / 图上坐标"""
-    tmp = "/tmp/_see_raw.png"
-    small = "/tmp/_see.png"
-    with open(tmp, "wb") as f:
-        f.write(subprocess.run(["adb", "exec-out", "screencap", "-p"],
-                               capture_output=True, timeout=30).stdout)
-    subprocess.run(["sips", "-Z", str(SHOT_W), tmp, "--out", small],
-                   capture_output=True, timeout=30)
-    dims = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", tmp],
-                          capture_output=True, timeout=15).stdout.decode()
-    raw_w = int(re.search(r"pixelWidth:\s*(\d+)", dims).group(1))
-    raw_h = int(re.search(r"pixelHeight:\s*(\d+)", dims).group(1))
-    scale = max(raw_w, raw_h) / SHOT_W
-    return base64.b64encode(open(small, "rb").read()).decode(), scale
+    parent = os.environ.get("PHONE_AGENT_SHOT_DIR")
+    if parent:
+        parent = str(Path(parent).expanduser())
+        Path(parent).mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="phone-agent-see-", dir=parent) as folder:
+        tmp = str(Path(folder) / "raw.png")
+        small = str(Path(folder) / "small.png")
+        with open(tmp, "wb") as f:
+            f.write(subprocess.run(["adb", "exec-out", "screencap", "-p"],
+                                   capture_output=True, timeout=30, check=True).stdout)
+        subprocess.run(["sips", "-Z", str(SHOT_W), tmp, "--out", small],
+                       capture_output=True, timeout=30, check=True)
+        dims = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", tmp],
+                              capture_output=True, timeout=15, check=True).stdout.decode()
+        scaled = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", small],
+                                capture_output=True, timeout=15, check=True).stdout.decode()
+        raw_size = max(map(int, re.findall(r"pixel(?:Width|Height):\s*(\d+)", dims)))
+        small_size = max(map(int, re.findall(r"pixel(?:Width|Height):\s*(\d+)", scaled)))
+        return base64.b64encode(Path(small).read_bytes()).decode(), raw_size / small_size
 
 
 def ask(prompt, img_b64):
@@ -67,12 +83,17 @@ def ask(prompt, img_b64):
 
 def main():
     args = sys.argv[1:]
+    if "--help" in args or "-h" in args:
+        print(__doc__)
+        return
     if not args:
         raise SystemExit(__doc__)
     do_tap = "--tap" in args
     pure_ask = "--ask" in args
     target = " ".join(a for a in args if not a.startswith("--"))
-
+    if not target:
+        raise SystemExit("请提供要找的元素或问题")
+    load_key()
     img, scale = screenshot()
 
     if pure_ask:

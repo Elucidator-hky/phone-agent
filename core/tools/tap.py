@@ -8,7 +8,7 @@
   python3 tap.py --find 租房       # 列出所有包含"租房"的元素
 
 坐标可信度：全屏 App（小红书等）dump 坐标 = 真实坐标，直接可用。
-闲鱼是分屏 + Flutter，dump 坐标有缩放偏移，那边仍需截图定位。
+闲鱼原生首页可读控件树，H5 页面需截图；分屏时先核对坐标与截图。
 """
 import re
 import subprocess
@@ -47,6 +47,9 @@ def elements():
 
 def main():
     args = [a for a in sys.argv[1:]]
+    if "--help" in args or "-h" in args:
+        print(__doc__)
+        return
     dry = "--dry" in args
     find = "--find" in args
     idx = 0
@@ -75,7 +78,7 @@ def main():
     if not hits:
         print(f"未找到：{kw}")
         sys.exit(1)
-    if idx >= len(hits):
+    if idx < 0 or idx >= len(hits):
         print(f"只有 {len(hits)} 个匹配，index {idx} 越界")
         sys.exit(1)
 

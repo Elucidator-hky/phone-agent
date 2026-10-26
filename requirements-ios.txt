@@ -1,0 +1,2 @@
+# iPhone 核心工具只用 Python 3 标准库，无需 pip 依赖。
+# 系统依赖：macOS sips、Xcode（含 xcrun/devicectl）、curl、iproxy。

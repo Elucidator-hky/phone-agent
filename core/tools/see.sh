@@ -4,16 +4,28 @@
 #      ./see.sh -t "搜索框"                  → 出坐标并直接点击
 # 模型: qwen3-vl-plus（百炼），~1100 token/次，比大模型看原图省 60%+ 且便宜十倍
 
-set -e
-source ~/.config/secrets/dashscope.env
-export DASHSCOPE_API_KEY
-TMP=/private/tmp/claude-501/-Users-a1-6-phone-agent/cad8646b-0e2a-49c8-8877-749cd6d3f3ed/scratchpad
+set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
+case "${1:-}" in
+  -h|--help) echo '用法: see.sh [-t] "要找的元素描述"；环境变量 DASHSCOPE_API_KEY 或 DASHSCOPE_ENV_FILE、ANDROID_SERIAL、PHONE_AGENT_SHOT_DIR'; exit 0 ;;
+esac
 
 DO_TAP=0
-[ "$1" = "-t" ] && { DO_TAP=1; shift; }
-TARGET="$1"
+[ "${1:-}" = "-t" ] && { DO_TAP=1; shift; }
+TARGET="${1:-}"
 [ -z "$TARGET" ] && { echo "用法: $0 [-t] \"要找的元素描述\""; exit 1; }
+DASHSCOPE_API_KEY=$(python3 - "$DIR" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from see import load_key
+print(load_key())
+PY
+)
+export DASHSCOPE_API_KEY
+SHOT_ROOT="${PHONE_AGENT_SHOT_DIR:-${TMPDIR:-/tmp}/phone-agent}"
+mkdir -p "$SHOT_ROOT"
+TMP=$(mktemp -d "$SHOT_ROOT/see.XXXXXX")
+trap 'rm -rf "$TMP"' EXIT
 
 # 1. 截图 + 缩到 1280 高（省 token，坐标按比例还原）
 adb exec-out screencap -p > "$TMP/_see.png"
@@ -52,13 +64,13 @@ res = json.load(opener.open(req, timeout=60))
 txt = res["choices"][0]["message"]["content"].strip()
 tok = res["usage"]["total_tokens"]
 nums = [int(n) for n in __import__("re").findall(r"-?\d+", txt)][:2]
-if len(nums) < 2 or nums[0] < 0:
+if len(nums) < 2 or not all(0 <= n <= 1000 for n in nums):
     print(f"NOT_FOUND ({txt}) tokens={tok}"); sys.exit(2)
 
 # Qwen3-VL 返回的是 0-1000 千分比归一化坐标，不是缩略图像素坐标
-x = int(nums[0] / 1000 * rw)
-y = int(nums[1] / 1000 * rh)
+x = min(rw - 1, int(nums[0] / 1000 * rw))
+y = min(rh - 1, int(nums[1] / 1000 * rh))
 print(f"{x} {y}  (tokens={tok})")
 if do_tap == "1":
-    subprocess.run([f"{d}/hput.sh", "tap", str(x), str(y)])
+    subprocess.run([f"{d}/hput.sh", "tap", str(x), str(y)], check=True)
 PY

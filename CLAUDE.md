@@ -1,4 +1,4 @@
-# phone-agent —— 用 Mac 操控安卓设备干活
+# phone-agent —— 用 Mac 操控 iPhone 和安卓设备
 
 这个项目是**长期积累**的：每做一次任务，操控某个 App 的经验就该多一份。
 经验不累积 = 每次从零踩坑 = 这个项目失败。
@@ -62,11 +62,11 @@ tasks/<任务名>/          任务的素材、产出、进度         ← 做完
 会限流、封号、违规的
 ```
 
-## 设备
+## 设备与配置
 
-小米平板 24091RPADC（Xiaomi Pad 7 Pro），HyperOS，Android 16，2136×3200
-adb 序列号 `<设备序列号>`，锁屏密码见本地配置
-百炼 key：`~/.config/secrets/dashscope.env` 的 `DASHSCOPE_API_KEY`
+- iPhone：WDA 首次搭建及环境变量见 `core/iphone-setup.md`，操作命令见 `core/通路.md`。
+- 安卓：用 `ANDROID_SERIAL` 选择设备，按 `core/通路.md` 配置 adb 与输入法。
+- 配套 Skill 来自 `Elucidator-hky/claude-skills` 的 `phone-agent` 插件，`PHONE_AGENT_HOME` 指向本仓库。
 
 ## 边界（不可越过）
 
@@ -74,13 +74,8 @@ adb 序列号 `<设备序列号>`，锁屏密码见本地配置
 - **微信不自动发消息**，只做"起草 → 用户按发送"，除非用户当次明确说直接发
 - **不查看他人隐私**
 - 加随机延迟，别高频操作
-- 收工必须把输入法切回搜狗，否则用户打不了字
+- 安卓输入后恢复用户原输入法；必要时用 `ANDROID_IME` 指定
 
-## 当前已知的 App
+## App 手册
 
-| App | 手册 | 状态 |
-|---|---|---|
-| 小红书 | `core/apps/小红书.md` | 发图文/视频笔记、编辑、私信、评论 已跑通 |
-| 闲鱼 | `core/apps/闲鱼.md` | 发布/编辑房源、擦亮、逛商品砍价 已跑通 |
-| 微信 | `core/apps/微信.md` | 发消息链路已验证，默认只起草不自动发 |
-| 拼多多 | `core/apps/拼多多.md` | 搜索会触发滑块验证，需人工 |
+手册索引见 `README.md`「操作经验」。发布、清理、账户检查等流程都先读目标 App 手册。文档中的实测坐标需按当前机型和布局重新确认。
